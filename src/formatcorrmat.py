@@ -102,16 +102,16 @@ class Clean(object):
         decimals, boldsig):
         
         attributesFromDict(locals())
-        if not self.decimals is None:
+        if self.decimals is not None:
             self.decimals = int(self.decimals)
-        
+
         self.datacells = pt.DataCellArray()
         self.dim = self.datacells.GetNumColumns()   # size of a block
         self.numrows = self.datacells.GetNumRows()
-        
+
         self.rowl = pt.RowLabelArray()
         self.lastlbl = self.rowl.GetNumColumns() - 1  # innermost label
-  
+
         self.block = 0
         
     def cleanblock(self):
@@ -137,7 +137,7 @@ class Clean(object):
                     self.datacells.HideFootnotesAt(rowaddr, c)
                     if not self.hideN:
                         self.datacells.SetValueAt(rowaddr+2, c, " ")
-                    if not (self.hideinsig < 1.):
+                    if self.hideinsig >= 1.0:
                         self.datacells.SetValueAt(rowaddr+1, c, " ")
 
             # blank insignificant cells (if requested) and highlight large corrs (if requested)
@@ -145,19 +145,18 @@ class Clean(object):
                 if self.lowertri and c > row:
                     continue
                 skip = False
-                if self.hideinsig < 1. or self.boldsig < 1.:  # blank insig
-                    if c != row:
-                        try:
-                            sig = floatex(self.datacells.GetValueAt(rowaddr+1, c))
-                        except:
-                            sig = 1.  # hide if not a number
-                        if sig > self.hideinsig:
-                            self.datacells.SetValueAt(rowaddr, c, " ")
-                            self.datacells.HideFootnotesAt(rowaddr, c)  # remove all footnotes
-                            skip = True
-                        elif sig <= self.boldsig:
-                            self.datacells.SetTextStyleAt(rowaddr, c, 
-                                SpssClient.SpssTextStyleTypes.SpssTSBold)
+                if (self.hideinsig < 1.0 or self.boldsig < 1.0) and c != row:
+                    try:
+                        sig = floatex(self.datacells.GetValueAt(rowaddr+1, c))
+                    except:
+                        sig = 1.  # hide if not a number
+                    if sig > self.hideinsig:
+                        self.datacells.SetValueAt(rowaddr, c, " ")
+                        self.datacells.HideFootnotesAt(rowaddr, c)  # remove all footnotes
+                        skip = True
+                    elif sig <= self.boldsig:
+                        self.datacells.SetTextStyleAt(rowaddr, c, 
+                            SpssClient.SpssTextStyleTypes.SpssTSBold)
                 corr = None
                 if self.emphlarge < 1. and (not skip) and c != row:  # highlight large corrs unless failed sig test
                     try:
@@ -167,9 +166,9 @@ class Clean(object):
                     if abs(corr) >= self.emphlarge:
                         self.datacells.SetTextStyleAt(rowaddr, c, style)
                         self.datacells.SetBackgroundColorAt(rowaddr, c, color)
-                if (not self.decimals is None) and (not skip):
+                if self.decimals is not None and not skip:
                     self.datacells.SetHDecDigitsAt(rowaddr, c, self.decimals)
-        
+
         self.block += 1
         
 def attributesFromDict(d):
